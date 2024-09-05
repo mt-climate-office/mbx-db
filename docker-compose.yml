@@ -8,14 +8,13 @@ services:
         healthcheck:
             interval: 10s
             retries: 10
-            test: "pg_isready -U \"$$POSTGRES_USER\" -d \"nocodb\""
+            test: "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""
             timeout: 2s
         image: timescale/timescaledb-ha:pg16
         ports: 
             - "5432:5432"
         volumes:
             - db-data:/var/lib/postgresql/data
-            - ./002_init_nocodb.sql:/docker-entrypoint-initdb.d/002_init_nocodb.sql
         env_file:
             - .env
 
