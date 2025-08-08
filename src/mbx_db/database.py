@@ -1,5 +1,4 @@
 from sqlalchemy import URL, text
-from sqlalchemy.engine.base import Engine
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 
@@ -8,7 +7,7 @@ def make_connection_string(
     password: str,
     host: str,
     database: str,
-    port: int=5432,
+    port: int = 5432,
 ) -> URL:
     return URL.create(
         "postgresql+asyncpg",
@@ -16,7 +15,7 @@ def make_connection_string(
         password=password,
         host=host,
         database=database,
-        port=port
+        port=port,
     )
 
 

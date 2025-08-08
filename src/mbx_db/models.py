@@ -1,7 +1,7 @@
 from __future__ import annotations
 from datetime import date, datetime
 from typing import List, Any
-from sqlalchemy import ForeignKey, String, Identity, Date, BigInteger
+from sqlalchemy import ForeignKey, String, Identity, Date, BigInteger, DateTime, Integer
 from sqlalchemy import CheckConstraint, ForeignKeyConstraint, UniqueConstraint
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase
@@ -25,6 +25,10 @@ class Elements(Base):
     si_units: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     us_units: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     extra_data = mapped_column(JSONB, nullable=True)
+    inventory_id: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True, index=True
+    )
+    last_updated: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     models: Mapped[Optional[List["ComponentModels"]]] = relationship(
         "ComponentModels",
         secondary="network.component_elements",
@@ -40,6 +44,10 @@ class ComponentModels(Base):
     model: Mapped[str] = mapped_column(primary_key=True)
     manufacturer: Mapped[str]
     type: Mapped[str]
+    inventory_id: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True, index=True
+    )
+    last_updated: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     elements: Mapped[Optional[List["Elements"]]] = relationship(
         "Elements",
         secondary="network.component_elements",
@@ -66,6 +74,10 @@ class ComponentElements(Base):
     element: Mapped[str] = mapped_column(
         String, ForeignKey("network.elements.element"), primary_key=True
     )
+    inventory_id: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True, index=True
+    )
+    last_updated: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     qc_values = mapped_column(JSONB)
 
 
@@ -89,6 +101,10 @@ class Stations(Base):
     latitude: Mapped[float]
     longitude: Mapped[float]
     elevation: Mapped[float]
+    inventory_id: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True, index=True
+    )
+    last_updated: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     request_schemas: Mapped[Optional[List["RequestSchemas"]]] = relationship(
         "RequestSchemas",
         secondary="network.station_request_schemas",
@@ -142,8 +158,8 @@ class StationRequestSchemas(Base):
         String, ForeignKey("network.stations.station"), primary_key=True
     )
     date_start: Mapped[date] = mapped_column(Date, primary_key=True)
-    date_end: Mapped[date | None]
-    report_interval: Mapped[int]
+    date_end: Mapped[date] = mapped_column(Date, nullable=True)
+    report_interval: Mapped[int] = mapped_column(Integer)
 
 
 class RequestSchemas(Base):
@@ -168,6 +184,10 @@ class Inventory(Base):
     )
     serial_number: Mapped[str] = mapped_column(primary_key=True)
     extra_data = mapped_column(JSONB, nullable=True)
+    inventory_id: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True, index=True
+    )
+    last_updated: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     deployments: Mapped[List["Deployments"]] = relationship(
         "Deployments", back_populates="inventory"
     )
@@ -196,6 +216,13 @@ class Deployments(Base):
     date_assigned: Mapped[date] = mapped_column(nullable=False, primary_key=True)
     date_start: Mapped[date] = mapped_column(nullable=True)
     date_end: Mapped[date] = mapped_column(Date, nullable=True)
+    extra_data = mapped_column(JSONB, nullable=True)
+    elevation_cm: Mapped[int] = mapped_column(Integer, nullable=True)
+
+    inventory_id: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True, index=True
+    )
+    last_updated: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     inventory: Mapped["Inventory"] = relationship(
         "Inventory", back_populates="deployments"
     )
@@ -215,8 +242,8 @@ class Raw(Base):
         ForeignKey("network.stations.station"), primary_key=True
     )
 
-    datetime: Mapped[datetime]
-    created_at: Mapped[datetime]  # type: ignore
+    datetime: Mapped[datetime] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime)  # type: ignore
     data = mapped_column(JSONB)
 
 

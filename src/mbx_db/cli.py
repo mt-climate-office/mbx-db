@@ -1,5 +1,4 @@
 from mesonet_in_a_box.config import Config
-from sqlalchemy import create_engine
 from .models import Base
 from .database import (
     make_connection_string,
@@ -17,15 +16,18 @@ def callback():
     "Functionality for initializing, migrating and managing the TimescaleDB."
     ...
 
+
 app = typer.Typer(rich_markup_mode="rich", callback=callback)
+
 
 async def async_init_db(conn):
     async_engine: AsyncEngine = create_async_engine(conn)
     await create_network_schema(async_engine)
     await create_data_schema(async_engine)
-    # await Base.metadata.drop_all(bind=async_engine)
     async with async_engine.begin() as conn_:
+        await conn_.run_sync(Base.metadata.drop_all)
         await conn_.run_sync(Base.metadata.create_all)
+
 
 @app.command()
 def init_db():
@@ -45,7 +47,7 @@ def init_db():
     pg_username = os.getenv("POSTGRES_USER")
     if pg_username is None:
         raise ValueError("POSTGRES_USER environment variable couldn't be found.")
-    
+
     pg_hostname = os.getenv("POSTGRES_HOST")
     if pg_hostname is None:
         raise ValueError("POSTGRES_HOST environment variable couldn't be found.")
