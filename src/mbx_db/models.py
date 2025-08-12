@@ -242,8 +242,8 @@ class Raw(Base):
         ForeignKey("network.stations.station"), primary_key=True
     )
 
-    datetime: Mapped[datetime] = mapped_column(DateTime)
-    created_at: Mapped[datetime] = mapped_column(DateTime)  # type: ignore
+    datetime: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))  # type: ignore
     data = mapped_column(JSONB)
 
 
@@ -260,7 +260,9 @@ class Observations(Base):
     deployment: Mapped[int] = mapped_column(
         ForeignKey("network.deployments.id"), primary_key=True, index=True
     )
-    datetime: Mapped[datetime] = mapped_column(primary_key=True, index=True)
+    datetime: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), primary_key=True, index=True
+    )
     value: Mapped[float]
     qc_flags: Mapped[int] = mapped_column(BigInteger, nullable=True)
     deployment_relationship: Mapped["Deployments"] = relationship(

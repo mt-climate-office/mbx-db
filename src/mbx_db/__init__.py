@@ -14,6 +14,16 @@ from .models import (
     Raw,
     Observations,
 )
+from .sync import (
+    SyncResult,
+    UpsertResult,
+    SyncError,
+    DatabaseSyncError,
+    TransactionError,
+    get_existing_records,
+    upsert_records,
+    sync_table_data,
+)
 
 
 __all__ = [
@@ -29,4 +39,12 @@ __all__ = [
     "Deployments",
     "Raw",
     "Observations",
+    "SyncResult",
+    "UpsertResult",
+    "SyncError",
+    "DatabaseSyncError",
+    "TransactionError",
+    "get_existing_records",
+    "upsert_records",
+    "sync_table_data",
 ]

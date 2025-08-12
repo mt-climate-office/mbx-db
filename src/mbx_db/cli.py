@@ -11,13 +11,10 @@ import typer
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine
 import asyncio
 
-
-def callback():
-    "Functionality for initializing, migrating and managing the TimescaleDB."
-    ...
-
-
-app = typer.Typer(rich_markup_mode="rich", callback=callback)
+app = typer.Typer(
+    rich_markup_mode="rich",
+    help="Functionality for initializing, migrating and managing the TimescaleDB.",
+)
 
 
 async def async_init_db(conn):
