@@ -28,7 +28,6 @@ class Elements(Base):
     inventory_id: Mapped[Optional[str]] = mapped_column(
         String, nullable=True, index=True
     )
-    last_updated: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     models: Mapped[Optional[List["ComponentModels"]]] = relationship(
         "ComponentModels",
         secondary="network.component_elements",
@@ -47,7 +46,6 @@ class ComponentModels(Base):
     inventory_id: Mapped[Optional[str]] = mapped_column(
         String, nullable=True, index=True
     )
-    last_updated: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     elements: Mapped[Optional[List["Elements"]]] = relationship(
         "Elements",
         secondary="network.component_elements",
@@ -77,7 +75,6 @@ class ComponentElements(Base):
     inventory_id: Mapped[Optional[str]] = mapped_column(
         String, nullable=True, index=True
     )
-    last_updated: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     qc_values = mapped_column(JSONB)
 
 
@@ -93,7 +90,7 @@ class Stations(Base):
     status: Mapped[str] = mapped_column(
         String,
         CheckConstraint(
-            "status IN ('pending', 'active', 'decommissioned', 'inactive')"
+            "status IN ('pending', 'active', 'decommissioned', 'inactive', 'contracted', 'ground', 'structures') OR status LIKE 'candidate-%'"
         ),
         nullable=False,
     )
@@ -104,7 +101,6 @@ class Stations(Base):
     inventory_id: Mapped[Optional[str]] = mapped_column(
         String, nullable=True, index=True
     )
-    last_updated: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     request_schemas: Mapped[Optional[List["RequestSchemas"]]] = relationship(
         "RequestSchemas",
         secondary="network.station_request_schemas",
@@ -187,7 +183,6 @@ class Inventory(Base):
     inventory_id: Mapped[Optional[str]] = mapped_column(
         String, nullable=True, index=True
     )
-    last_updated: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     deployments: Mapped[List["Deployments"]] = relationship(
         "Deployments", back_populates="inventory"
     )
@@ -201,11 +196,10 @@ class Deployments(Base):
             ["network.inventory.model", "network.inventory.serial_number"],
         ),
         UniqueConstraint("station", "model", "serial_number", "date_assigned"),
-        UniqueConstraint("id"),
         {"schema": "network"},
     )
 
-    id: Mapped[int] = mapped_column(Identity(), primary_key=True)
+    id: Mapped[int] = mapped_column(Identity(), unique=True, index=True) 
     station: Mapped[str] = mapped_column(
         ForeignKey("network.stations.station"),
         index=True,
@@ -222,7 +216,6 @@ class Deployments(Base):
     inventory_id: Mapped[Optional[str]] = mapped_column(
         String, nullable=True, index=True
     )
-    last_updated: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     inventory: Mapped["Inventory"] = relationship(
         "Inventory", back_populates="deployments"
     )

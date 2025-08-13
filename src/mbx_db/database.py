@@ -1,4 +1,4 @@
-from sqlalchemy import URL, text
+from sqlalchemy import URL, text, DDL
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 
@@ -21,11 +21,11 @@ def make_connection_string(
 
 async def create_data_schema(engine: AsyncEngine) -> None:
     async with engine.connect() as conn:
-        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS data"))
+        await conn.execute(DDL("CREATE SCHEMA IF NOT EXISTS data"))
         await conn.commit()
 
 
 async def create_network_schema(engine: AsyncEngine) -> None:
     async with engine.connect() as conn:
-        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS network"))
+        await conn.execute(DDL("CREATE SCHEMA IF NOT EXISTS network"))
         await conn.commit()

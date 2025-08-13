@@ -2,7 +2,7 @@ from sqlalchemy import text
 
 
 make_flow_hypertable = text("""
-    text("SELECT create_hypertable('flow.data', by_range('date', INTERVAL '1 year'));")
+    SELECT create_hypertable('flow.data', by_range('date', INTERVAL '1 year'));
 """)
 
 
