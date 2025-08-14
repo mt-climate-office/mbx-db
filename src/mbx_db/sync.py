@@ -7,13 +7,12 @@ database operations, and transaction management for inventory data sync.
 
 from __future__ import annotations
 from datetime import datetime
-from typing import List, Dict, Any, Optional, Type
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection, AsyncSession
-from sqlalchemy import text, select, inspect, MetaData, Table, update
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection
+from sqlalchemy import select, MetaData, Table, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import sessionmaker
 import logging
 
 logger = logging.getLogger(__name__)
@@ -199,12 +198,23 @@ async def upsert_records(
         async with engine.begin() as conn:  # Use transaction
             # Get primary key columns if not specified
             if conflict_columns is None:
-                conflict_columns = [col.name for col in table.primary_key.columns]
+                # Exclude auto-incrementing identity columns from conflict resolution
+                conflict_columns = []
+                for col in table.primary_key.columns:
+                    # Skip identity/autoincrement columns as they're not provided in input data
+                    if (
+                        not (hasattr(col, "identity") and col.identity is not None)
+                        and not col.autoincrement
+                    ):
+                        conflict_columns.append(col.name)
 
+                # If no suitable conflict columns found, fall back to all primary key columns
                 if not conflict_columns:
-                    raise DatabaseSyncError(
-                        f"No primary key found for {schema}.{table_name}"
-                    )
+                    conflict_columns = [col.name for col in table.primary_key.columns]
+                    if not conflict_columns:
+                        raise DatabaseSyncError(
+                            f"No primary key found for {schema}.{table_name}"
+                        )
 
             # Process records in batches to avoid memory issues
             batch_size = 100
@@ -255,15 +265,24 @@ async def _upsert_batch(
     if not records:
         return
 
-    # Filter out columns that don't exist in the table
-    table_columns = {col.name for col in table.columns}
+    # Filter out columns that don't exist in the table and exclude identity/autoincrement columns
+    # Exclude identity/autoincrement columns from insertion
+    insertable_columns = set()
+    for col in table.columns:
+        if (
+            not (hasattr(col, "identity") and col.identity is not None)
+            and not col.autoincrement
+        ):
+            insertable_columns.add(col.name)
+
     valid_records = []
     for record in records:
-        valid_record = {k: v for k, v in record.items() if k in table_columns}
-        # Ensure all table columns are present in each record
-        for col in table_columns:
-            if col not in valid_record:
-                valid_record[col] = None
+        # Only include columns that exist in table and are insertable (not identity/autoincrement)
+        valid_record = {k: v for k, v in record.items() if k in insertable_columns}
+        # Don't add None values for missing columns if they're identity/autoincrement
+        for col_name in insertable_columns:
+            if col_name not in valid_record:
+                valid_record[col_name] = None
         valid_records.append(valid_record)
 
     if not valid_records:
@@ -274,7 +293,7 @@ async def _upsert_batch(
 
     # Determine update columns (exclude conflict columns)
     update_columns = [
-    col for col in valid_records[0].keys() if col not in conflict_columns
+        col for col in valid_records[0].keys() if col not in conflict_columns
     ]
 
     if update_columns:
@@ -284,7 +303,7 @@ async def _upsert_batch(
             index_elements=conflict_columns, set_=update_dict
         )
     else:
-    # If no columns to update, just ignore conflicts
+        # If no columns to update, just ignore conflicts
         stmt = stmt.on_conflict_do_nothing(index_elements=conflict_columns)
 
     # Execute batch insert with data
@@ -304,11 +323,19 @@ async def _upsert_individual_records(
 ) -> None:
     """Upsert records individually to handle failures gracefully using SQLAlchemy."""
     table_columns = {col.name for col in table.columns}
+    # Exclude identity/autoincrement columns from insertion
+    insertable_columns = set()
+    for col in table.columns:
+        if (
+            not (hasattr(col, "identity") and col.identity is not None)
+            and not col.autoincrement
+        ):
+            insertable_columns.add(col.name)
 
     for record in records:
         try:
-            # Filter out columns that don't exist in the table
-            valid_record = {k: v for k, v in record.items() if k in table_columns}
+            # Filter out columns that don't exist in the table and exclude identity/autoincrement columns
+            valid_record = {k: v for k, v in record.items() if k in insertable_columns}
 
             if not valid_record:
                 continue
@@ -405,7 +432,19 @@ async def sync_table_data(
 
                 # Get the table object and extract primary key columns
                 table = metadata.tables[f"{schema}.{table_name}"]
-                conflict_columns = [col.name for col in table.primary_key.columns]
+                # Exclude auto-incrementing identity columns from conflict resolution
+                conflict_columns = []
+                for col in table.primary_key.columns:
+                    # Skip identity/autoincrement columns as they're not provided in input data
+                    if (
+                        not (hasattr(col, "identity") and col.identity is not None)
+                        and not col.autoincrement
+                    ):
+                        conflict_columns.append(col.name)
+
+                # If no suitable conflict columns found, fall back to all primary key columns
+                if not conflict_columns:
+                    conflict_columns = [col.name for col in table.primary_key.columns]
 
             # Build set of existing record keys
             for record in existing_records:

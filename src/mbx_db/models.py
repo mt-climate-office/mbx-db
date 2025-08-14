@@ -199,7 +199,7 @@ class Deployments(Base):
         {"schema": "network"},
     )
 
-    id: Mapped[int] = mapped_column(Identity(), unique=True, index=True) 
+    id: Mapped[int] = mapped_column(Identity(), unique=True, index=True, autoincrement=True, primary_key=True) 
     station: Mapped[str] = mapped_column(
         ForeignKey("network.stations.station"),
         index=True,
